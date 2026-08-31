@@ -1,0 +1,6 @@
+delta,theory,measured,stderr,abs_deviation,within_4_sigma
+0,1.0,1.0,0.0,0.0,True
+pi/4,0.7071,0.7019,0.005,0.0052,True
+pi/2,0.0,-0.0002,0.0071,0.0002,True
+3pi/4,-0.7071,-0.7006,0.005,0.0065,True
+pi,-1.0,-1.0,0.0,0.0,True
