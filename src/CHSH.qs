@@ -3,29 +3,23 @@ namespace CHSH {
     import Std.Math.*;
     import Std.Arrays.*;
 
-    /// Prepares the Bell state |Phi+> = (|00> + |11>) / sqrt(2).
     operation PrepareBellPair(a : Qubit, b : Qubit) : Unit {
         H(a);
         CNOT(a, b);
     }
 
-    /// Prepares a separable reference state (|+>|+>) with the same
-    /// single-qubit statistics as the Bell pair but no entanglement.
+    // kontrol icin: entangle olmayan |+>|+>
     operation PrepareProductPair(a : Qubit, b : Qubit) : Unit {
         H(a);
         H(b);
     }
 
-    /// Measures the observable cos(theta) Z + sin(theta) X.
-    /// Rotating by Ry(-theta) maps that axis onto Z, so a plain
-    /// Z-measurement afterwards implements the tilted measurement.
+    // Q# sadece Z'de olcuyor, Ry(-theta) ile istenen ekseni Z'ye ceviriyorum
     operation MeasureAtAngle(theta : Double, q : Qubit) : Result {
         Ry(-theta, q);
         return MResetZ(q);
     }
 
-    /// One CHSH trial: prepare a pair, measure Alice at angleA and
-    /// Bob at angleB, and return the product of the +1 / -1 outcomes.
     operation SampleCorrelation(
         angleA : Double,
         angleB : Double,
@@ -44,8 +38,6 @@ namespace CHSH {
         return sa * sb;
     }
 
-    /// Runs `shots` independent trials and returns the raw +1 / -1 products.
-    /// Averaging these in Python gives the correlator E(angleA, angleB).
     operation SampleCorrelationBatch(
         angleA : Double,
         angleB : Double,

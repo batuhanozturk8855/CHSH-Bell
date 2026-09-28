@@ -1,12 +1,3 @@
-"""
-CHSH / Bell esitsizligi deneyi.
-
-Quantum devre Q# tarafinda (src/CHSH.qs). Bu script onu calistiriyor:
-correlator degerlerini ornekliyor, CHSH istatistigi S'i hesapliyor,
-olcum acilarini tariyor, white noise ekleyip visibility esigini
-buluyor ve results/ klasorune CSV tablolari ile PNG grafikleri yaziyor.
-"""
-
 import itertools
 import math
 import os
@@ -22,13 +13,12 @@ RESULTS = "results"
 CLASSICAL_BOUND = 2.0
 TSIRELSON_BOUND = 2.0 * math.sqrt(2.0)
 
-# Optimal CHSH angle set (Bloch polar angles, X-Z plane).
+# S'i maksimum yapan acilar (X-Z duzleminde)
 A0, A1 = 0.0, math.pi / 2
 B0, B1 = math.pi / 4, -math.pi / 4
 
 
 def sample_products(angle_a, angle_b, entangled, shots):
-    """Return an array of +1/-1 products from `shots` Q# trials."""
     call = (
         f"CHSH.SampleCorrelationBatch("
         f"{angle_a}, {angle_b}, {'true' if entangled else 'false'}, {shots})"
@@ -37,12 +27,8 @@ def sample_products(angle_a, angle_b, entangled, shots):
 
 
 def correlator(angle_a, angle_b, entangled=True, shots=4000, noise=0.0, rng=None):
-    """Estimate E(a, b) with a standard error.
-
-    `noise` replaces that fraction of trials with uniformly random
-    products, modelling white noise / loss of visibility.
-    """
     products = sample_products(angle_a, angle_b, entangled, shots)
+    # noise: sonuclarin bu kadarlik kismi rastgele +1/-1 ile degistiriliyor
     if noise > 0.0:
         rng = rng or np.random.default_rng()
         mask = rng.random(shots) < noise
@@ -53,22 +39,18 @@ def correlator(angle_a, angle_b, entangled=True, shots=4000, noise=0.0, rng=None
 
 
 def chsh_statistic(a0=A0, a1=A1, b0=B0, b1=B1, **kw):
-    """S = E(a0,b0) + E(a0,b1) + E(a1,b0) - E(a1,b1)."""
     terms = [
         correlator(a0, b0, **kw),
         correlator(a0, b1, **kw),
         correlator(a1, b0, **kw),
         correlator(a1, b1, **kw),
     ]
-    signs = [1.0, 1.0, 1.0, -1.0]
+    signs = [1.0, 1.0, 1.0, -1.0]  # son terim eksi
     s = sum(sg * m for sg, (m, _) in zip(signs, terms))
     err = math.sqrt(sum(e**2 for _, e in terms))
     return s, err, [m for m, _ in terms]
 
 
-# ----------------------------------------------------------------------
-# Stage 1 - validate the circuit against the analytic correlator
-# ----------------------------------------------------------------------
 def stage_validation(shots=20000):
     print("\n[1] Devre dogrulamasi: E(a,b) degeri cos(a-b) ile ayni cikmali")
     rows = []
@@ -100,9 +82,6 @@ def stage_validation(shots=20000):
     return df
 
 
-# ----------------------------------------------------------------------
-# Stage 2 - the classical bound, proved by exhaustive enumeration
-# ----------------------------------------------------------------------
 def stage_classical_bound():
     print("\n[2] Klasik sinir (local hidden variable) - tum ihtimallerin sayimi")
     rows = []
@@ -117,9 +96,6 @@ def stage_classical_bound():
     return df
 
 
-# ----------------------------------------------------------------------
-# Stage 3 - the measurement itself
-# ----------------------------------------------------------------------
 def stage_main_measurement(shots=100000):
     print(f"\n[3] Optimal acilarda CHSH degeri (correlator basina {shots} shot)")
     rows = []
@@ -146,9 +122,6 @@ def stage_main_measurement(shots=100000):
     return df
 
 
-# ----------------------------------------------------------------------
-# Stage 4 - angle sweep: why pi/4 is the right choice
-# ----------------------------------------------------------------------
 def stage_angle_sweep(points=25, shots=8000):
     print(f"\n[4] Aci taramasi: Bob'un olcum ekseni delta kadar donduruluyor")
     deltas = np.linspace(0.0, math.pi / 2, points)
@@ -180,9 +153,6 @@ def stage_angle_sweep(points=25, shots=8000):
     return df
 
 
-# ----------------------------------------------------------------------
-# Stage 5 - correlator curve, entangled vs product
-# ----------------------------------------------------------------------
 def stage_correlation_curve(points=25, shots=8000):
     print("\n[5] Korelasyon egrisi E(delta): entangled ve separable karsilastirmasi")
     deltas = np.linspace(0.0, math.pi, points)
@@ -214,9 +184,6 @@ def stage_correlation_curve(points=25, shots=8000):
     return df
 
 
-# ----------------------------------------------------------------------
-# Stage 6 - white-noise visibility threshold
-# ----------------------------------------------------------------------
 def stage_noise_threshold(points=21, shots=20000, seed=1234):
     print("\n[6] White noise taramasi: ihlal ne kadar gurultude kayboluyor")
     rng = np.random.default_rng(seed)
@@ -254,9 +221,6 @@ def stage_noise_threshold(points=21, shots=20000, seed=1234):
     return df, theory_p
 
 
-# ----------------------------------------------------------------------
-# Stage 7 - statistical convergence
-# ----------------------------------------------------------------------
 def stage_convergence(seed=7):
     print("\n[7] Shot sayisina gore S degerinin yakinsamasi")
     shot_counts = [100, 300, 1000, 3000, 10000, 30000, 100000]
@@ -288,7 +252,6 @@ def stage_convergence(seed=7):
 
 
 def yaz_ozet(valid_df, main_df, conv_df, theory_p):
-    """results/SONUCLAR.md dosyasina Turkce ozet yazar."""
     bell = main_df.iloc[0]
     prod = main_df.iloc[1]
     en_iyi = conv_df.iloc[-1]
